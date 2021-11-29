@@ -1,0 +1,8 @@
+prefix=/home/maytus/internship_main/py2_amr/install
+
+Name: detection
+Description: Description of detection
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

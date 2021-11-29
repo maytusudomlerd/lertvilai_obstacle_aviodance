@@ -1,0 +1,90 @@
+<?xml version='1.0'?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <!-- Link Wheel -->
+    <xacro:macro name="link_wheel" params="name">
+        <link name="${name}">
+            <inertial>
+                <mass value="0.2"/>
+                <origin rpy="0 1.5707 1.5707" xyz="0 0 0"/>
+                <inertia ixx="0.000526666666667" ixy="0" ixz="0" iyy="0.000526666666667" iyz="0" izz="0.001"/>
+            </inertial>
+            <collision name="${name}_collision">
+                <origin rpy="0 1.5707 1.5707" xyz="0 0 0"/>
+                <geometry>
+                    <cylinder length="0.05" radius="0.08"/>
+                </geometry>
+            </collision>
+            <visual name="${name}_visual">
+                <origin rpy="0 1.5707 1.5707" xyz="0 0 0"/>
+                <geometry>
+                    <cylinder length="0.05" radius="0.08"/>
+                </geometry>
+            </visual>
+        </link>
+    </xacro:macro>
+     <!-- Caster -->
+    <xacro:macro name="caster" params="name origin_xyz">
+        <collision name='${name}_collision'>
+            <origin rpy="0 0 0" xyz="${origin_xyz}"/>
+            <geometry>
+                <sphere radius="0.05"/>}
+            </geometry>
+            <surface>
+                <friction>
+                    <ode>
+                        <mu>0</mu>
+                        <mu2>0</mu2>
+                        <slip1>1.0</slip1>
+                        <slip2>1.0</slip2>
+                    </ode>
+                </friction>
+            </surface>
+        </collision>
+        <visual name='${name}_visual'>
+            <origin rpy="0 0 0" xyz="${origin_xyz}"/>
+            <geometry>
+                <sphere radius="0.05"/>
+            </geometry>
+        </visual>
+    </xacro:macro>
+    <!-- Joint Wheel -->
+    <xacro:macro name="joint_wheel" params="name parent child origin_xyz">
+        <joint type="continuous" name="${name}">
+            <origin rpy="0 0 0" xyz="${origin_xyz}"/>
+            <child link="${child}"/>
+            <parent link="${parent}"/>
+            <axis rpy="0 0 0" xyz="0 1 0"/>
+            <limit effort="10000" velocity="1000"/>
+            <joint_properties damping="1.0" friction="1.0"/>
+        </joint>
+    </xacro:macro>
+
+    <!-- laser -->
+    <xacro:macro name="laser" params="name">
+        <link name="${name}">
+            <inertial>
+                <mass value="0.05"/>
+                <origin rpy="0 0 0" xyz="0 0 0"/>
+                <xacro:cylinder_inertia mass="0.05" l="0.03" r="0.05" />
+            </inertial>
+            <collision name="${name}_collision">
+                <origin rpy="0 0 0" xyz="0 0 0"/>
+                <geometry>
+                    <cylinder length="0.03" radius="0.05"/>
+                </geometry>
+            </collision>
+            <visual name="${name}_visual">
+                <origin rpy="0 0 0" xyz="0 0 0"/>
+                <geometry>
+                    <cylinder length="0.03" radius="0.05"/>
+                </geometry>
+            </visual>
+        </link>
+    </xacro:macro>
+    <!-- Inertia -->
+    <xacro:macro name="cylinder_inertia" params="mass r l">
+        <inertia  ixx="${mass*(3*r*r+l*l)/12}" ixy = "0" ixz = "0"
+                    iyy="${mass*(3*r*r+l*l)/12}" iyz = "0"
+                    izz="${mass*(r*r)/2}" />
+    </xacro:macro>
+</robot>

@@ -1,0 +1,2 @@
+detection:realsense-ros-development/realsense2_camera:realsense-ros-development/realsense2_description:realsense_gazebo_plugin
+-DCATKIN_DEVEL_PREFIX=/home/maytus/internship_main/py2_amr/devel -DCMAKE_INSTALL_PREFIX=/home/maytus/internship_main/py2_amr/install -G Unix Makefiles

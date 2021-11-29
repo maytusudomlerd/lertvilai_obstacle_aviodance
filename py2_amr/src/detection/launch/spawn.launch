@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<launch>
+
+  <param name="robot_description" command="$(find xacro)/xacro '$(find detection)/models/AMR.xacro'"/>
+
+  <arg name="x" default="1.5"/>
+  <arg name="y" default="2.7"/>
+  <arg name="z" default="0.5"/>
+
+  <node name="AMR_spawn" pkg="gazebo_ros" type="spawn_model" output="screen" args="-urdf -param robot_description -model AMR -x $(arg x) -y $(arg y) -z $(arg z)" />
+
+  <!-- convert joint states to TF transforms for rviz, etc -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"
+    respawn="false" output="screen">
+    <remap from="/joint_states" to="/AMR/joint_states" />
+  </node>
+
+</launch>

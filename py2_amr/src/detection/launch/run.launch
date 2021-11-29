@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<launch>
+
+
+    <!-- WORLD -->
+    <include file="$(find detection)/launch/world.launch"/>
+    <!-- SPAWN -->
+    <include file="$(find detection)/launch/spawn.launch"/>
+
+
+</launch>
