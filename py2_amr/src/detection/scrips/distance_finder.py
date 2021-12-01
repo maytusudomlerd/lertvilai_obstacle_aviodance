@@ -21,19 +21,28 @@ import random
 import math
 from matplotlib import pyplot as plt
 
+import open3d.visualization.gui as gui
+
 from sklearn.cluster import DBSCAN
 from sklearn.cluster import KMeans
-
 
 class obstacleDetection:
 	
 	def __init__(self):
+
+		self.initial_camera=True
+
+		self.w =  640
+		self.h = 480
+		self.pipeline = None
+
 		self.color_topic = '/camera/color/image_raw'
 		self.depth_topic = '/camera/depth/image_raw'
 		self.pointcloud_topic = '/camera/depth/color/points'
 		self.bridge = CvBridge()
-		self.color_img = np.array([])
-		self.depth_img = np.array([])
+		self.color = None
+		self.depth = None
+		self.camera_parameter = None
 		
 		self.points = []
 
@@ -50,12 +59,63 @@ class obstacleDetection:
 		self.epoch = []
 		self.processtime = 0.0
 
+		self.depth_scale = 0.0
+
+		self.i = 0
+
 		# initialze
 		rospy.init_node("detection")
 		self.pointcloud_pub = rospy.Publisher("detection/result", PointCloud2,queue_size=1)
-		rospy.Rate(30)
-		for i in range(50):
-			rospy.Subscriber(self.pointcloud_topic, PointCloud2, self.getPointcloudCallback)
+		rospy.Rate(10)
+
+		# run detection
+		if(self.initial_camera):
+			self.initcamera(havebag=False)
+			self.initial_camera = False
+		while(not rospy.is_shutdown()):
+			self.get_frames()
+
+
+	def initcamera(self,havebag=False):
+
+		self.pipeline = rs.pipeline()
+		config = rs.config()
+
+		if(havebag):
+			rs.config.enable_device_from_file(config, '/home/maytus/py2_amr/src/detection/bag/complexobstacle.bag')
+			# rs.config.enable_device_from_file(config, '/home/maytus/py2_amr/src/detection/bag/twoobstacle.bag')
+			# rs.config.enable_device_from_file(config, '/home/maytus/py2_amr/src/detection/bag/oneobstacle.bag')
+
+		else:
+			config.enable_stream(rs.stream.color, self.w, self.h, rs.format.rgb8, 30)
+			config.enable_stream(rs.stream.depth, self.w, self.h, rs.format.z16, 30)
+
+		profile = self.pipeline.start(config)
+		print(profile)
+
+		depth_sensor = profile.get_device().first_depth_sensor()
+		self.depth_scale = depth_sensor.get_depth_scale()
+		print("Depth Scale is: " , self.depth_scale)
+
+		self.get_frames()
+
+	def get_frames(self):
+		rospy.loginfo("[INFO] frames")
+		align = rs.align(rs.stream.color)
+
+		frames = self.pipeline.wait_for_frames()
+		profile = frames.get_profile()
+		frames = align.process(frames)
+		depth_frame = frames.get_depth_frame()
+		color_frame = frames.get_color_frame()
+		color = np.asanyarray(color_frame.get_data())
+		rgb = color[..., ::-1].copy()
+		depth = np.asanyarray(depth_frame.get_data())
+		self.depth = o3d.geometry.Image(depth)
+		self.color = o3d.geometry.Image(rgb)
+		self.camera_parameter = profile.as_video_stream_profile().get_intrinsics()
+
+		self.dataprocessing(voxelize=True,voxel_size=0.05)
 
 
 	def distance_point(self,xyz, xyz1):
@@ -150,6 +210,7 @@ class obstacleDetection:
 			# point = np.array(m.points).tolist()
 			point += m
 			# check  point is a list
+		point.transform([[0, 0, 1, 0], [1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 0, 1]])  # Z up
 		result = np.array(point.points).tolist()
 		# print(point)
 		# o3d.visualization.draw_geometries([point])
@@ -159,60 +220,43 @@ class obstacleDetection:
 		# print(pcloud)
 
 		self.pointcloud_pub.publish(pcloud)
-
-	def sub_pointcloud(self):
-		rospy.Subscriber(self.pointcloud_topic, PointCloud2, self.getPointcloudCallback)
-
-	def getPointcloudCallback(self,msg):
-		self.points = []
-		for p in pc2.read_points(msg, field_names = ("x", "y", "z"), skip_nans=True):
-			self.points.append(p)
-
-		self.dataprocessing(voxel_size=0.05)
-
+		print('[finish]')
 
 	def dataprocessing(self,voxelize=True,voxel_size=0.05):
 		rospy.loginfo("[INFO] Data Processing")
-		self.pc.clear()
+
 		# initial timer
 		self.timestamp = []
 		self.processtime = time.time()
 
 		
+		rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(self.color, self.depth)
+		pinhole_camera_intrinsic = o3d.camera.PinholeCameraIntrinsic(self.camera_parameter.width, self.camera_parameter.height,
+															 self.camera_parameter.fx,
+															 self.camera_parameter.fy, self.camera_parameter.ppx,
+															 self.camera_parameter.ppy)
 		try:
-			self.pc.points = o3d.utility.Vector3dVector(self.points) #use many time
+			self.pc = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd, pinhole_camera_intrinsic)
 			self.pc_size = len(self.pc.points)
-			# print(self.pc_size)
-			self.pc.transform([[0, 0, 1, 0], [1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 0, 1]]) 
-			# self.pc.transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+			print(self.pc_size)
+			# self.pc.transform([[0, 0, 1, 0], [1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 0, 1]]) # for publish
+			self.pc.transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]) #for test # X up
 
-			if(voxelize):
-				self.pc = o3d.geometry.PointCloud.voxel_down_sample(self.pc, voxel_size=voxel_size)
-			self.add_timestamp()
-			# print(self.processtime)
-			# print(self.timesta0mp)
-			# self.groundtruth()
-			x = np.array(self.pc.points)[0:, 0:1]
-			y = np.array(self.pc.points)[0:, 1:2]
-			z = np.array(self.pc.points)[0:, 2:3]
-			print(np.array(self.pc.points[0]))
-			x_max = max(x.tolist())
-			y_max = max(y.tolist())
-			z_max = max(z.tolist())
-			x_min = min(x.tolist())
-			y_min = min(y.tolist())
-			z_min = min(z.tolist())
-			print(x_min,x_max)
-			print(y_min,y_max)
-			print(z_min,z_max)
 			o3d.visualization.draw_geometries([self.pc]+[self.axis])
 
-			# self.initial_segmentation(estimate_normal=True,debug=False)
+			if(self.pc_size > 0):
+				if(voxelize):
+					self.pc = o3d.geometry.PointCloud.voxel_down_sample(self.pc, voxel_size=voxel_size)
+				self.add_timestamp()
+				# print(self.processtime)
+				# print(self.timestamp)
+				o3d.visualization.draw_geometries([self.pc]+[self.axis])
+				self.initial_segmentation(estimate_normal=True,debug=True)
 
 		except:
 			pass
 
-	def initial_segmentation(self,eps=0.05,min_sample=5,debug=False,estimate_normal=False,normals_neigh=30):
+	def initial_segmentation(self,eps=0.05,min_sample=3,debug=False,estimate_normal=False,normals_neigh=30):
 		
 		rospy.loginfo("[INFO] Initial Segmentation")
 
@@ -242,7 +286,7 @@ class obstacleDetection:
 
 
 		self.add_timestamp()
-		self.split(debug=False)
+		self.split(debug=True)
 
 	def split(self,debug=False):
 
@@ -263,14 +307,11 @@ class obstacleDetection:
 		for i in range(len(self.clusters['point'])):
 
 			plane_theshold = int(self.pc_size / len(self.clusters['point'][i].points))
-			# print(plane_theshold)
-			# print('plane theshold ',plane_theshold)
 
-			# # filtering small cluster
+			# filtering small cluster
 			if(len(self.clusters['point'][i].points)<=2):
 				continue
 
-			# num = int(len(self.clusters['point'][i].points))
 			num = int(len(self.clusters['point'][i].points)*0.4) if int(len(self.clusters['point'][i].points)*0.4)>3 else 3
 
 			model, indx = self.clusters['point'][i].segment_plane(distance_threshold=0.03,ransac_n=num,num_iterations=300)
@@ -278,20 +319,20 @@ class obstacleDetection:
 			inlier = self.clusters['point'][i].select_by_index(indx)
 			outlier = self.clusters['point'][i].select_by_index(indx,invert=True)
 
-			# print('len ',len(inlier.points))
 			if(len(inlier.points) > plane_theshold):
-				inlier.paint_uniform_color([0,0,0])
+				inlier.paint_uniform_color([1,0,0])
 				plane.append(inlier)
 
 			else:
-				inlier.paint_uniform_color([0,1,0])
 				obstacle.append(inlier)
 
-			if( 10 <= len(outlier.points) <= plane_theshold):
-				outlier.paint_uniform_color([0,1,0])
+			if( 50 <= len(outlier.points) <= plane_theshold):
 				obstacle.append(outlier)
 
-		# o3d.visualization.draw_geometries([p for p in plane]+[self.axis])
+		# o3d.visualization.draw_geometries([p for p in plane])
+		# o3d.visualization.draw_geometries([o for o in obstacle])
+		# for o in obstacle:
+		# 	o.paint_uniform_color([0,1,0])
 		# o3d.visualization.draw_geometries([o for o in obstacle]+[p for p in plane]+[self.axis])
 
 		if(len(obstacle) >= 0):
@@ -302,7 +343,7 @@ class obstacleDetection:
 			obstacle = temp
 
 			point = np.array(obstacle.points)
-			db = DBSCAN(eps=0.05, min_samples=3).fit(point)
+			db = DBSCAN(eps=0.09, min_samples=3).fit(point)
 			labels = db.labels_
 			max_label = labels.max()
 			for i in range(0, max_label):
@@ -326,7 +367,7 @@ class obstacleDetection:
 				for s in splits['point']:
 					color = plt.get_cmap("hsv")(random.randint(0,255))
 					s.paint_uniform_color(list(color[:3]))
-				o3d.visualization.draw_geometries([s for s in splits['point']])
+				o3d.visualization.draw_geometries([s for s in splits['point']]+[self.axis])
 
 			if(len(self.clusters['point']) >= 0):
 				self.add_timestamp()
@@ -335,7 +376,7 @@ class obstacleDetection:
 			else:
 				self.pointcloudpub()
 
-	def merges(self,distanceFromOrigin_tol=3,distanceBetweenPlane_th=2,angleBetweenPlane_th=5,debug=False,bounding=False):
+	def merges(self,distanceFromOrigin_tol=2,distanceBetweenPlane_th=1,angleBetweenPlane_th=5,debug=False,bounding=False):
 		rospy.loginfo("[INFO] Merge")
 
 		self.merge = []
@@ -355,7 +396,6 @@ class obstacleDetection:
 		}
 
 		if(len(self.clusters['point']) >= 2):
-			# print(len(self.clusters['point']))
 			# print('\t[status] can merge')
 
 			# find cadadate plane 
@@ -411,6 +451,8 @@ class obstacleDetection:
 							print('\t\t',distanceBetweenPlane)
 
 						if (distanceBetweenPlane <= distanceBetweenPlane_th):
+
+
 							if (debug):
 								print('\t\t[Debug] Merged')
 								# candidate['point'].paint_uniform_color([0, 1, 0])
@@ -469,6 +511,67 @@ class obstacleDetection:
 				for c in self.clusters['point']:
 					self.merge.append(c)
 
+
+			# mapto2d
+			for i in range(len(self.merge)):				
+				#position of obstacle bound
+				try:
+					b = self.merge[i].get_axis_aligned_bounding_box()
+					boxnode = np.array(b.get_box_points())
+
+					min_x = min(boxnode[0:,0])
+					min_y = min(boxnode[0:,1])
+					max_x = max(boxnode[0:,0])
+					max_y = max(boxnode[0:,1])
+					min_z = min(np.abs(boxnode[0:,2]))
+					max_z = max(np.abs(boxnode[0:,2]))
+					
+					# convert to pixel
+					"""            
+					| pixel to mm    
+					| resolution    w(mm)    h(mm) 
+					| 848*640        4        5
+					| 640*480        5        7
+					| 320*240        11       14
+					"""
+
+					# mm to m
+					min_x *= 1000
+					max_x *= 1000
+					min_y *= 1000
+					max_y *= 1000
+
+					if(self.w == 8480 and self.h == 640):
+						top_left_pixel_x = int(min_x/4)
+						top_left_pixel_y = int(max_y/5)
+						top_left = [top_left_pixel_x,top_left_pixel_y]
+						bottom_right_pixel_x = int(max_x/4)
+						bottom_right_pixel_y = int(min_y/5)
+						bottom_right = [bottom_right_pixel_x,bottom_right_pixel_y]
+					elif(self.w == 640 and self.h == 480):
+						top_left_pixel_x = int(min_x/5)
+						top_left_pixel_y = int(max_y/7)
+						top_left = [top_left_pixel_x,top_left_pixel_y]
+						bottom_right_pixel_x = int(max_x/5)
+						bottom_right_pixel_y = int(min_y/7)
+						bottom_right = [bottom_right_pixel_x,bottom_right_pixel_y]
+					elif(self.w == 320 and self.h == 240):
+						op_left_pixel_x = int(min_x/11)
+						top_left_pixel_y = int(max_y/14)
+						top_left = [top_left_pixel_x,top_left_pixel_y]
+						bottom_right_pixel_x = int(max_x/11)
+						bottom_right_pixel_y = int(min_y/14)
+						bottom_right = [bottom_right_pixel_x,bottom_right_pixel_y]
+
+					print(top_left,bottom_right)
+					print('found obstacle at depth ',-min_z)
+					
+				except:
+					self.merge.remove(self.merge[i])
+					continue
+
+
+
 			if(bounding):
 				boundingbox = []
 				line = {
@@ -476,19 +579,16 @@ class obstacleDetection:
 					'edge' : [[4,5],[4,6],[5,3],[3,6],[0,3],[4,7],[6,1],[5,2],[0,2],[0,1],[1,7],[2,7]],
 					'color' : []
 				}
-				for i in range(len(self.merge)):
-					C = self.merge[i].get_center()
-					x,y,z = C
-					print('x ',x,' y ',y,' z ',z)
-					
+				for i in range(len(self.merge)):					
 					#position of obstacle bound
 					try:
-						b = self.merge[i].get_oriented_bounding_box()
+						b = self.merge[i].get_axis_aligned_bounding_box()
 						boxnode = np.array(b.get_box_points())
 						line['node'].append(boxnode)
 						line_set = o3d.geometry.LineSet(
 							points=o3d.utility.Vector3dVector(line['node'][i].tolist()),
-							lines=o3d.utility.Vector2iVector(line['edge'])
+							# points=o3d.utility.Vector3dVector(line['node'][i].tolist()),
+							lines=o3d.utility.Vector2iVector(line['edge']),
 						)
 						boundingbox.append(line_set)
 					except:
@@ -499,36 +599,30 @@ class obstacleDetection:
 					color = plt.get_cmap("hsv")(random.randint(0,255))
 					m.paint_uniform_color(list(color[:3]))
 
-				# o3d.visualization.draw_geometries([m for m in self.merge])
-				o3d.visualization.draw_geometries([self.axis]+[b for b in boundingbox]+[m for m in self.merge])  #
+				o3d.visualization.draw_geometries([self.axis]+[box for box in boundingbox]+[m for m in self.merge])
 
 			if(debug):
 				print("[Result] After Merging We Got :",len(self.merge),'clusters')
-				i=50
 				for m in self.merge:
-					color = plt.get_cmap("hsv")(i)
+					color = plt.get_cmap("hsv")(random.randint(0,255))
 					m.paint_uniform_color(list(color[:3]))
-					i+=50
-				
-				self.pc.paint_uniform_color([0,0,0])
+			
 				o3d.visualization.draw_geometries([m for m in self.merge]+[self.axis])
-				# o3d.visualization.draw_geometries([self.axis]+[self.pc]+[m for m in self.merge])
 
 			
 			# Total time usaged
-			self.add_timestamp()
-			# print('add')
+			# self.add_timestamp()
 			# self.addtoCSV()
-			# print('csv')
-			self.pointcloudpub()
+
+			# self.pointcloudpub()
 
 		else:
-			print('\t[status] 1 cluster')
+			# print('\t[status] 1 cluster')
 
 			self.merge = self.clusters['point']
 			self.add_timestamp()
-			self.addtoCSV()
-			self.pointcloudpub()
+			# self.addtoCSV()
+			# self.pointcloudpub()
 
 
 
