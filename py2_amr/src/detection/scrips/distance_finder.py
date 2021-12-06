@@ -80,9 +80,22 @@ class obstacleDetection:
 			'normals_neigh' : 30,
 			'eps' : 0.05,
 			'min_sample' : 3,
-			'debug' : True,
-			'plane_removal' : True
+			'debug' : False
 		}
+		# split param 
+		self.split_param = {
+			'eps': 0.05,
+			'min_sample' : 5,
+			'debug' : False
+		}
+		# Merge param
+		self.merge_param = {
+			'distanceFromOrigin_tol':1.7,
+			'distanceBetweenPlane_th':1.3,
+			'debug':False,
+			'bounding':False
+		}
+
 
 		
 
@@ -118,8 +131,8 @@ class obstacleDetection:
 		config = rs.config()
 
 		if(havebag):
-			rs.config.enable_device_from_file(config, '/home/maytus/internship_main/py2_amr/src/detection/bag/complexobstacle.bag')
-			# rs.config.enable_device_from_file(config, '/home/maytus/internship_main/py2_amr/src/detection/bag/twoobstacle.bag')
+			# rs.config.enable_device_from_file(config, '/home/maytus/internship_main/py2_amr/src/detection/bag/complexobstacle.bag')
+			rs.config.enable_device_from_file(config, '/home/maytus/internship_main/py2_amr/src/detection/bag/twoobstacle.bag')
 			# rs.config.enable_device_from_file(config, '/home/maytus/internship_main/py2_amr/src/detection/bag/oneobstacle.bag')
 
 		else:
@@ -288,7 +301,7 @@ class obstacleDetection:
 				if(self.dataprocessing_param['voxelize']):
 					self.pc = o3d.geometry.PointCloud.voxel_down_sample(self.pc, voxel_size=self.dataprocessing_param['voxel_size'])
 				self.add_timestamp()
-				o3d.visualization.draw_geometries([self.pc]+[self.axis])
+				# o3d.visualization.draw_geometries([self.pc]+[self.axis])
 				self.initial_segmentation()
 
 		except:
@@ -305,7 +318,6 @@ class obstacleDetection:
 			clustering_input_type = np.array(self.pc.normals)
 		else:
 			clustering_input_type = np.array(self.pc.points)
-			self.initial_seg_param['plane_removal'] = False
 		
 		db = DBSCAN(eps=self.initial_seg_param['eps'], min_samples=self.initial_seg_param['min_sample']).fit(clustering_input_type)
 		labels = db.labels_
@@ -324,13 +336,11 @@ class obstacleDetection:
 
 
 		self.add_timestamp()
-		self.split(debug=False)
+		self.split()
 
-	def split(self,debug=False):
+	def split(self):
 
 		rospy.loginfo("[INFO] Split")
-
-		kmean = KMeans(n_clusters=2, random_state=0)
 
 		splits = {
 			'point': [], 
@@ -340,7 +350,7 @@ class obstacleDetection:
 			}
 
 		# Plane Removal
-		if(self.plane_removal):
+		if(self.initial_seg_param['estimate_normal']):
 			plane = []
 			obstacle = []
 
@@ -383,7 +393,7 @@ class obstacleDetection:
 
 				except:
 					continue
-			if(debug):
+			if(self.split_param['debug']):
 				o3d.visualization.draw_geometries([p for p in plane])
 				o3d.visualization.draw_geometries([o for o in obstacle])
 				o3d.visualization.draw_geometries([o for o in obstacle]+[p for p in plane]+[self.axis])
@@ -391,7 +401,7 @@ class obstacleDetection:
 			obstacle = []
 			obstacle = self.clusters['point'].copy()
 
-			if(debug):
+			if(self.split_param['debug']):
 				o3d.visualization.draw_geometries([o for o in obstacle]+[self.axis])
 
 		# Split
@@ -404,7 +414,7 @@ class obstacleDetection:
 			obstacle = temp
 
 			point = np.array(obstacle.points)
-			db = DBSCAN(eps=0.05, min_samples=3).fit(point)
+			db = DBSCAN(eps=self.split_param['eps'], min_samples=self.split_param['min_sample']).fit(point)
 			labels = db.labels_
 			max_label = labels.max()
 			for i in range(0, max_label):
@@ -428,7 +438,7 @@ class obstacleDetection:
 
 			self.clusters = splits
 
-			if(debug):
+			if(self.split_param['debug']):
 				for s in splits['point']:
 					color = plt.get_cmap("hsv")(random.randint(0,255))
 					s.paint_uniform_color(list(color[:3]))
@@ -436,12 +446,12 @@ class obstacleDetection:
 
 			if(len(self.clusters['point']) >= 0):
 				self.add_timestamp()
-				self.merges(debug=False,bounding=False)
+				self.merges()
 
 			else:
 				self.pointcloudpub()
 
-	def merges(self,distanceFromOrigin_tol=1.7,distanceBetweenPlane_th=1.3,angleBetweenPlane_th=5,debug=False,bounding=False):
+	def merges(self):
 		rospy.loginfo("[INFO] Merge")
 
 		self.merge = []
@@ -489,7 +499,7 @@ class obstacleDetection:
 
 					for j in range(len(self.clusters['distanceFromOrigin'])+1):
 
-						if (debug):
+						if (self.merge_param['debug']):
 							print('\t\t[Debug] Merging with distance between origin to centroid')
 							print('\t\t',np.abs(candidate['distanceFromOrigin']-temp['distanceFromOrigin']))
 
@@ -507,18 +517,18 @@ class obstacleDetection:
 							# )
 							# line_set.colors = o3d.utility.Vector3dVector([[0, 0, 1], [1, 0, 0]])
 							# o3d.visualization.draw_geometries([candidate['point']]+[temp['point']]+[self.axis]+[line_set])
-						if np.isclose(candidate['distanceFromOrigin'], temp['distanceFromOrigin'], atol=distanceFromOrigin_tol):
+						if np.isclose(candidate['distanceFromOrigin'], temp['distanceFromOrigin'], atol=self.merge_param['distanceFromOrigin_tol']):
 							distanceBetweenPlane = self.distance_point(xyz=candidate['centroid'],
 																			   xyz1=temp['centroid'])
 
-							if(debug):
+							if(self.merge_param['debug']):
 								print('\t\t[Debug] Merging with distance between 2 plane')
 								print('\t\t',distanceBetweenPlane)
 
-							if (distanceBetweenPlane <= distanceBetweenPlane_th):
+							if (distanceBetweenPlane <= self.merge_param['distanceBetweenPlane_th']):
 
 
-								if (debug):
+								if (self.merge_param['debug']):
 									print('\t\t[Debug] Merged')
 									# candidate['point'].paint_uniform_color([0, 1, 0])
 									# temp['point'].paint_uniform_color([0, 1, 0])
@@ -578,7 +588,7 @@ class obstacleDetection:
 
 
 		# mapto2d
-		if(not bounding):
+		if(not self.merge_param['bounding'] and not self.merge_param['debug']):
 			for i in range(len(self.merge)):				
 				#position of obstacle bound
 				self.merge[i].transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
@@ -635,7 +645,7 @@ class obstacleDetection:
 
 
 
-		if(bounding):
+		if(self.merge_param['bounding']):
 			boundingbox = []
 			line = {
 				'node' : [],         
@@ -663,7 +673,7 @@ class obstacleDetection:
 
 			o3d.visualization.draw_geometries([self.axis]+[box for box in boundingbox]+[m for m in self.merge])
 
-		if(debug):
+		if(self.merge_param['debug']):
 			print("[Result] After Merging We Got :",len(self.merge),'clusters')
 			for m in self.merge:
 				color = plt.get_cmap("hsv")(random.randint(0,255))
