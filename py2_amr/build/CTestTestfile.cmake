@@ -5,7 +5,7 @@
 # This file includes the relevant testing commands required for 
 # testing this directory and lists subdirectories to be tested as well.
 subdirs("gtest")
-subdirs("detection")
 subdirs("realsense-ros-development/realsense2_description")
 subdirs("realsense-ros-development/realsense2_camera")
 subdirs("realsense_gazebo_plugin")
+subdirs("detection")

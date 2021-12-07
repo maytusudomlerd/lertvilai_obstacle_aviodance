@@ -9,6 +9,8 @@ from cv_bridge import CvBridge, CvBridgeError
 import sensor_msgs.point_cloud2 as pc2
 from sensor_msgs.msg import PointCloud2, PointField
 
+from detection.msg import obstacle_bound
+
 
 import numpy as np
 import random 
@@ -43,7 +45,7 @@ class obstacleDetection:
 		self.vfov_deg_d = 58.0 * np.pi /180
 		self.hfov_deg_c = 69.0 * np.pi /180
 		self.vfov_deg_c = 42.0 * np.pi /180
-		self.wd = 3 #m 
+		self.wd = 3 # m 
 		self.hfov = 2 * self.wd*math.tan(self.hfov_deg_c/2)
 		self.vfov = (self.hfov/4) * 3
 
@@ -74,24 +76,21 @@ class obstacleDetection:
 			'normals_neigh' : 30,
 			'eps' : 0.05,
 			'min_sample' : 3,
-			'debug' : True
+			'debug' : False
 		}
 		# split param 
 		self.split_param = {
-			'eps': 0.05,
-			'min_sample' : 5,
-			'debug' : True
+			'eps': 0.09,
+			'min_sample' : 3,
+			'debug' : False
 		}
 		# Merge param
 		self.merge_param = {
-			'distanceFromOrigin_tol':1.7,
+			'distanceFromOrigin_tol':1.5,
 			'distanceBetweenPlane_th':1.3,
 			'debug':False,
-			'bounding':True
+			'bounding':False
 		}
-
-
-		
 
 		self.clusters = {'point': [] }
 		self.merge = []
@@ -105,55 +104,12 @@ class obstacleDetection:
 		# initialze
 		rospy.init_node("detection")
 		self.pointcloud_pub = rospy.Publisher("detection/result", PointCloud2,queue_size=1)
+		self.obstacle_bound_pub = rospy.Publisher('detection/obstacle/bound',obstacle_bound,queue_size=1)
 		rospy.Rate(10)
 
 		# rospy.Subscriber(self.color_topic, Image, self.getColorCallback)
 		rospy.Subscriber(self.pointcloud_topic, PointCloud2, self.getPointcloudCallback)
 		
-
-
-	# def initcamera(self,havebag=False):
-
-	# 	self.pipeline = rs.pipeline()
-	# 	config = rs.config()
-
-	# 	if(havebag):
-	# 		# rs.config.enable_device_from_file(config, '/home/maytus/internship_main/py2_amr/src/detection/bag/complexobstacle.bag')
-	# 		rs.config.enable_device_from_file(config, '/home/maytus/internship_main/py2_amr/src/detection/bag/twoobstacle.bag')
-	# 		# rs.config.enable_device_from_file(config, '/home/maytus/internship_main/py2_amr/src/detection/bag/oneobstacle.bag')
-
-	# 	else:
-	# 		config.enable_stream(rs.stream.color, self.w, self.h, rs.format.rgb8, 30)
-	# 		config.enable_stream(rs.stream.depth, self.w, self.h, rs.format.z16, 30)
-
-	# 	profile = self.pipeline.start(config)
-	# 	print(profile)
-
-	# 	depth_sensor = profile.get_device().first_depth_sensor()
-	# 	self.depth_scale = depth_sensor.get_depth_scale()
-	# 	# print("Depth Scale is: " , self.depth_scale)
-
-	# 	self.get_frames()
-
-	# def get_frames(self):
-	# 	rospy.loginfo("[INFO] frames")
-	# 	align = rs.align(rs.stream.color)
-
-	# 	frames = self.pipeline.wait_for_frames()
-	# 	profile = frames.get_profile()
-	# 	frames = align.process(frames)
-	# 	depth_frame = frames.get_depth_frame()
-	# 	color_frame = frames.get_color_frame()
-	# 	color = np.asanyarray(color_frame.get_data())
-	# 	rgb = color[..., ::-1].copy()
-	# 	self.rgb_img = rgb.copy()
-	# 	depth = np.asanyarray(depth_frame.get_data())
-	# 	self.depth = o3d.geometry.Image(depth)
-	# 	self.color = o3d.geometry.Image(rgb)
-	# 	self.camera_parameter = profile.as_video_stream_profile().get_intrinsics()
-
-	# 	self.dataprocessing()
-
 
 	def distance_point(self,xyz, xyz1):
 		try:
@@ -242,12 +198,16 @@ class obstacleDetection:
 	def pointcloudpub(self):
 		rospy.loginfo("[INFO] Publishing")
 		pcloud = PointCloud2()
+		point = None
 		point = self.merge.pop(0)
 		for m in self.merge:
 			# point = np.array(m.points).tolist()
 			point += m
 			# check  point is a list
-		point.transform([[0, 0, 1, 0], [1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 0, 1]])  # Z up
+		point.transform([[0, 0, 1, 0], [1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 0, 1]])
+
+		# o3d.visualization.draw_geometries([self.axis]+[point])
+
 		result = np.array(point.points).tolist()
 		# print(point)
 		# o3d.visualization.draw_geometries([point])
@@ -293,8 +253,7 @@ class obstacleDetection:
 			self.pc.points = o3d.utility.Vector3dVector(self.points) #use many time
 			self.pc_size = len(self.pc.points)
 			# print(self.pc_size)
-			self.pc.transform([[0, 0, 1, 0], [1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 0, 1]]) 
-			# self.pc.transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+			# self.pc.transform([[0, 0, 1, 0], [1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 0, 1]])
 
 			if(self.dataprocessing_param['voxelize']):
 				self.pc = o3d.geometry.PointCloud.voxel_down_sample(self.pc, voxel_size=self.dataprocessing_param['voxel_size'])
@@ -588,7 +547,6 @@ class obstacleDetection:
 		if(not self.merge_param['bounding'] and not self.merge_param['debug']):
 			for i in range(len(self.merge)):				
 				#position of obstacle bound
-				self.merge[i].transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
 				try:
 					b = self.merge[i].get_axis_aligned_bounding_box()
 					boxnode = np.array(b.get_box_points())
@@ -598,6 +556,14 @@ class obstacleDetection:
 					max_x = max(boxnode[0:,0])
 					max_y = max(boxnode[0:,1])
 					min_z = min(np.abs(boxnode[0:,2]))
+
+					# print('min_x ',min_x)
+					# print('max_x ',max_x)
+					# print('min_y ',min_y)
+					# print('max_y ',max_y)
+
+					# print(self.hfov/2)
+					# print(self.vfov/2)
 
 					# m to mm
 					min_x = (min_x + (self.hfov/2)) * 1000
@@ -627,20 +593,19 @@ class obstacleDetection:
 						top_left_pixel_y = int(min_y * factor_y)
 
 					print('xxx',top_left_pixel_x,top_left_pixel_y,bottom_right_pixel_x,bottom_right_pixel_y)
-					#publish the point to use cv aand show result
-
-					#using cv2
-					cv2.rectangle(self.rgb_img, (top_left_pixel_x, top_left_pixel_y), (bottom_right_pixel_x, bottom_right_pixel_y), (0,255,0), 2)
-					text = 'obstacle at %.2f m' %(min_z)
-					cv2.putText(self.rgb_img, text, (top_left_pixel_x - 5, top_left_pixel_y - 5), 0, 0.3, (0,255,0))
-			
+					
+					#publish the point to use cv and show result
+					msg = obstacle_bound()
+					msg.top_left_x = int(top_left_pixel_x)
+					msg.top_left_y = int(top_left_pixel_y)
+					msg.bottom_right_x = int(bottom_right_pixel_x)
+					msg.bottom_right_y = int(bottom_right_pixel_y)
+					msg.distance = float(min_z)
+					self.obstacle_bound_pub.publish(msg)
+								
 				except:
 					self.merge.remove(self.merge[i])
 					continue
-
-			cv2.imshow("Result", self.rgb_img)
-			cv2.waitKey(1)  
-
 
 
 		if(self.merge_param['bounding']):
@@ -684,7 +649,7 @@ class obstacleDetection:
 			# self.add_timestamp()
 			# self.addtoCSV()
 
-			# self.pointcloudpub()
+		self.pointcloudpub()
 
 
 

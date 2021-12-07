@@ -56,18 +56,6 @@ CMAKE_BINARY_DIR = /home/maytus/internship_main/py2_amr/build
 #=============================================================================
 # Targets provided globally by CMake.
 
-# Special rule for the target install/strip
-install/strip: preinstall
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
-	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
-.PHONY : install/strip
-
-# Special rule for the target install/strip
-install/strip/fast: preinstall/fast
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
-	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
-.PHONY : install/strip/fast
-
 # Special rule for the target install/local
 install/local: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
@@ -80,26 +68,17 @@ install/local/fast: preinstall/fast
 	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
 .PHONY : install/local/fast
 
-# Special rule for the target test
-test:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests..."
-	/usr/bin/ctest --force-new-ctest-process $(ARGS)
-.PHONY : test
+# Special rule for the target install
+install: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
+	/usr/bin/cmake -P cmake_install.cmake
+.PHONY : install
 
-# Special rule for the target test
-test/fast: test
-
-.PHONY : test/fast
-
-# Special rule for the target list_install_components
-list_install_components:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"Unspecified\""
-.PHONY : list_install_components
-
-# Special rule for the target list_install_components
-list_install_components/fast: list_install_components
-
-.PHONY : list_install_components/fast
+# Special rule for the target install
+install/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
+	/usr/bin/cmake -P cmake_install.cmake
+.PHONY : install/fast
 
 # Special rule for the target edit_cache
 edit_cache:
@@ -112,6 +91,29 @@ edit_cache/fast: edit_cache
 
 .PHONY : edit_cache/fast
 
+# Special rule for the target install/strip
+install/strip: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
+	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip
+
+# Special rule for the target install/strip
+install/strip/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
+	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip/fast
+
+# Special rule for the target test
+test:
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests..."
+	/usr/bin/ctest --force-new-ctest-process $(ARGS)
+.PHONY : test
+
+# Special rule for the target test
+test/fast: test
+
+.PHONY : test/fast
+
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
@@ -123,17 +125,15 @@ rebuild_cache/fast: rebuild_cache
 
 .PHONY : rebuild_cache/fast
 
-# Special rule for the target install
-install: preinstall
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
-	/usr/bin/cmake -P cmake_install.cmake
-.PHONY : install
+# Special rule for the target list_install_components
+list_install_components:
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"Unspecified\""
+.PHONY : list_install_components
 
-# Special rule for the target install
-install/fast: preinstall/fast
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
-	/usr/bin/cmake -P cmake_install.cmake
-.PHONY : install/fast
+# Special rule for the target list_install_components
+list_install_components/fast: list_install_components
+
+.PHONY : list_install_components/fast
 
 # The main all target
 all: cmake_check_build_system
@@ -168,19 +168,184 @@ depend:
 .PHONY : depend
 
 # Convenience name for target.
-detection/CMakeFiles/_catkin_empty_exported_target.dir/rule:
-	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f CMakeFiles/Makefile2 detection/CMakeFiles/_catkin_empty_exported_target.dir/rule
-.PHONY : detection/CMakeFiles/_catkin_empty_exported_target.dir/rule
+detection/CMakeFiles/detection_generate_messages_eus.dir/rule:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f CMakeFiles/Makefile2 detection/CMakeFiles/detection_generate_messages_eus.dir/rule
+.PHONY : detection/CMakeFiles/detection_generate_messages_eus.dir/rule
 
 # Convenience name for target.
-_catkin_empty_exported_target: detection/CMakeFiles/_catkin_empty_exported_target.dir/rule
+detection_generate_messages_eus: detection/CMakeFiles/detection_generate_messages_eus.dir/rule
 
-.PHONY : _catkin_empty_exported_target
+.PHONY : detection_generate_messages_eus
 
 # fast build rule for target.
-_catkin_empty_exported_target/fast:
-	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f detection/CMakeFiles/_catkin_empty_exported_target.dir/build.make detection/CMakeFiles/_catkin_empty_exported_target.dir/build
-.PHONY : _catkin_empty_exported_target/fast
+detection_generate_messages_eus/fast:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f detection/CMakeFiles/detection_generate_messages_eus.dir/build.make detection/CMakeFiles/detection_generate_messages_eus.dir/build
+.PHONY : detection_generate_messages_eus/fast
+
+# Convenience name for target.
+detection/CMakeFiles/detection_generate_messages_lisp.dir/rule:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f CMakeFiles/Makefile2 detection/CMakeFiles/detection_generate_messages_lisp.dir/rule
+.PHONY : detection/CMakeFiles/detection_generate_messages_lisp.dir/rule
+
+# Convenience name for target.
+detection_generate_messages_lisp: detection/CMakeFiles/detection_generate_messages_lisp.dir/rule
+
+.PHONY : detection_generate_messages_lisp
+
+# fast build rule for target.
+detection_generate_messages_lisp/fast:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f detection/CMakeFiles/detection_generate_messages_lisp.dir/build.make detection/CMakeFiles/detection_generate_messages_lisp.dir/build
+.PHONY : detection_generate_messages_lisp/fast
+
+# Convenience name for target.
+detection/CMakeFiles/detection_gencpp.dir/rule:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f CMakeFiles/Makefile2 detection/CMakeFiles/detection_gencpp.dir/rule
+.PHONY : detection/CMakeFiles/detection_gencpp.dir/rule
+
+# Convenience name for target.
+detection_gencpp: detection/CMakeFiles/detection_gencpp.dir/rule
+
+.PHONY : detection_gencpp
+
+# fast build rule for target.
+detection_gencpp/fast:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f detection/CMakeFiles/detection_gencpp.dir/build.make detection/CMakeFiles/detection_gencpp.dir/build
+.PHONY : detection_gencpp/fast
+
+# Convenience name for target.
+detection/CMakeFiles/detection_generate_messages_py.dir/rule:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f CMakeFiles/Makefile2 detection/CMakeFiles/detection_generate_messages_py.dir/rule
+.PHONY : detection/CMakeFiles/detection_generate_messages_py.dir/rule
+
+# Convenience name for target.
+detection_generate_messages_py: detection/CMakeFiles/detection_generate_messages_py.dir/rule
+
+.PHONY : detection_generate_messages_py
+
+# fast build rule for target.
+detection_generate_messages_py/fast:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f detection/CMakeFiles/detection_generate_messages_py.dir/build.make detection/CMakeFiles/detection_generate_messages_py.dir/build
+.PHONY : detection_generate_messages_py/fast
+
+# Convenience name for target.
+detection/CMakeFiles/detection_geneus.dir/rule:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f CMakeFiles/Makefile2 detection/CMakeFiles/detection_geneus.dir/rule
+.PHONY : detection/CMakeFiles/detection_geneus.dir/rule
+
+# Convenience name for target.
+detection_geneus: detection/CMakeFiles/detection_geneus.dir/rule
+
+.PHONY : detection_geneus
+
+# fast build rule for target.
+detection_geneus/fast:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f detection/CMakeFiles/detection_geneus.dir/build.make detection/CMakeFiles/detection_geneus.dir/build
+.PHONY : detection_geneus/fast
+
+# Convenience name for target.
+detection/CMakeFiles/detection_generate_messages_cpp.dir/rule:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f CMakeFiles/Makefile2 detection/CMakeFiles/detection_generate_messages_cpp.dir/rule
+.PHONY : detection/CMakeFiles/detection_generate_messages_cpp.dir/rule
+
+# Convenience name for target.
+detection_generate_messages_cpp: detection/CMakeFiles/detection_generate_messages_cpp.dir/rule
+
+.PHONY : detection_generate_messages_cpp
+
+# fast build rule for target.
+detection_generate_messages_cpp/fast:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f detection/CMakeFiles/detection_generate_messages_cpp.dir/build.make detection/CMakeFiles/detection_generate_messages_cpp.dir/build
+.PHONY : detection_generate_messages_cpp/fast
+
+# Convenience name for target.
+detection/CMakeFiles/detection_generate_messages.dir/rule:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f CMakeFiles/Makefile2 detection/CMakeFiles/detection_generate_messages.dir/rule
+.PHONY : detection/CMakeFiles/detection_generate_messages.dir/rule
+
+# Convenience name for target.
+detection_generate_messages: detection/CMakeFiles/detection_generate_messages.dir/rule
+
+.PHONY : detection_generate_messages
+
+# fast build rule for target.
+detection_generate_messages/fast:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f detection/CMakeFiles/detection_generate_messages.dir/build.make detection/CMakeFiles/detection_generate_messages.dir/build
+.PHONY : detection_generate_messages/fast
+
+# Convenience name for target.
+detection/CMakeFiles/_detection_generate_messages_check_deps_obstacle_bound.dir/rule:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f CMakeFiles/Makefile2 detection/CMakeFiles/_detection_generate_messages_check_deps_obstacle_bound.dir/rule
+.PHONY : detection/CMakeFiles/_detection_generate_messages_check_deps_obstacle_bound.dir/rule
+
+# Convenience name for target.
+_detection_generate_messages_check_deps_obstacle_bound: detection/CMakeFiles/_detection_generate_messages_check_deps_obstacle_bound.dir/rule
+
+.PHONY : _detection_generate_messages_check_deps_obstacle_bound
+
+# fast build rule for target.
+_detection_generate_messages_check_deps_obstacle_bound/fast:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f detection/CMakeFiles/_detection_generate_messages_check_deps_obstacle_bound.dir/build.make detection/CMakeFiles/_detection_generate_messages_check_deps_obstacle_bound.dir/build
+.PHONY : _detection_generate_messages_check_deps_obstacle_bound/fast
+
+# Convenience name for target.
+detection/CMakeFiles/detection_genlisp.dir/rule:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f CMakeFiles/Makefile2 detection/CMakeFiles/detection_genlisp.dir/rule
+.PHONY : detection/CMakeFiles/detection_genlisp.dir/rule
+
+# Convenience name for target.
+detection_genlisp: detection/CMakeFiles/detection_genlisp.dir/rule
+
+.PHONY : detection_genlisp
+
+# fast build rule for target.
+detection_genlisp/fast:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f detection/CMakeFiles/detection_genlisp.dir/build.make detection/CMakeFiles/detection_genlisp.dir/build
+.PHONY : detection_genlisp/fast
+
+# Convenience name for target.
+detection/CMakeFiles/detection_gennodejs.dir/rule:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f CMakeFiles/Makefile2 detection/CMakeFiles/detection_gennodejs.dir/rule
+.PHONY : detection/CMakeFiles/detection_gennodejs.dir/rule
+
+# Convenience name for target.
+detection_gennodejs: detection/CMakeFiles/detection_gennodejs.dir/rule
+
+.PHONY : detection_gennodejs
+
+# fast build rule for target.
+detection_gennodejs/fast:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f detection/CMakeFiles/detection_gennodejs.dir/build.make detection/CMakeFiles/detection_gennodejs.dir/build
+.PHONY : detection_gennodejs/fast
+
+# Convenience name for target.
+detection/CMakeFiles/detection_genpy.dir/rule:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f CMakeFiles/Makefile2 detection/CMakeFiles/detection_genpy.dir/rule
+.PHONY : detection/CMakeFiles/detection_genpy.dir/rule
+
+# Convenience name for target.
+detection_genpy: detection/CMakeFiles/detection_genpy.dir/rule
+
+.PHONY : detection_genpy
+
+# fast build rule for target.
+detection_genpy/fast:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f detection/CMakeFiles/detection_genpy.dir/build.make detection/CMakeFiles/detection_genpy.dir/build
+.PHONY : detection_genpy/fast
+
+# Convenience name for target.
+detection/CMakeFiles/detection_generate_messages_nodejs.dir/rule:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f CMakeFiles/Makefile2 detection/CMakeFiles/detection_generate_messages_nodejs.dir/rule
+.PHONY : detection/CMakeFiles/detection_generate_messages_nodejs.dir/rule
+
+# Convenience name for target.
+detection_generate_messages_nodejs: detection/CMakeFiles/detection_generate_messages_nodejs.dir/rule
+
+.PHONY : detection_generate_messages_nodejs
+
+# fast build rule for target.
+detection_generate_messages_nodejs/fast:
+	cd /home/maytus/internship_main/py2_amr/build && $(MAKE) -f detection/CMakeFiles/detection_generate_messages_nodejs.dir/build.make detection/CMakeFiles/detection_generate_messages_nodejs.dir/build
+.PHONY : detection_generate_messages_nodejs/fast
 
 # Help Target
 help:
@@ -188,14 +353,25 @@ help:
 	@echo "... all (the default if no target is provided)"
 	@echo "... clean"
 	@echo "... depend"
-	@echo "... install/strip"
 	@echo "... install/local"
-	@echo "... test"
-	@echo "... list_install_components"
-	@echo "... edit_cache"
-	@echo "... _catkin_empty_exported_target"
-	@echo "... rebuild_cache"
 	@echo "... install"
+	@echo "... detection_generate_messages_eus"
+	@echo "... detection_generate_messages_lisp"
+	@echo "... detection_gencpp"
+	@echo "... detection_generate_messages_py"
+	@echo "... detection_geneus"
+	@echo "... edit_cache"
+	@echo "... install/strip"
+	@echo "... detection_generate_messages_cpp"
+	@echo "... detection_generate_messages"
+	@echo "... test"
+	@echo "... _detection_generate_messages_check_deps_obstacle_bound"
+	@echo "... detection_genlisp"
+	@echo "... rebuild_cache"
+	@echo "... detection_gennodejs"
+	@echo "... detection_genpy"
+	@echo "... detection_generate_messages_nodejs"
+	@echo "... list_install_components"
 .PHONY : help
 
 

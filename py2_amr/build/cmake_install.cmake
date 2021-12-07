@@ -131,10 +131,10 @@ endif()
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
   include("/home/maytus/internship_main/py2_amr/build/gtest/cmake_install.cmake")
-  include("/home/maytus/internship_main/py2_amr/build/detection/cmake_install.cmake")
   include("/home/maytus/internship_main/py2_amr/build/realsense-ros-development/realsense2_description/cmake_install.cmake")
   include("/home/maytus/internship_main/py2_amr/build/realsense-ros-development/realsense2_camera/cmake_install.cmake")
   include("/home/maytus/internship_main/py2_amr/build/realsense_gazebo_plugin/cmake_install.cmake")
+  include("/home/maytus/internship_main/py2_amr/build/detection/cmake_install.cmake")
 
 endif()
 

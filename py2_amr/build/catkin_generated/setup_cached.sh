@@ -8,4 +8,3 @@
 
 # modified environment variables
 export PWD='/home/maytus/internship_main/py2_amr/build'
-export ROS_PACKAGE_PATH='/home/maytus/py2_amr/src:/home/maytus/internship_main/py2_amr/src:/opt/ros/melodic/share'
