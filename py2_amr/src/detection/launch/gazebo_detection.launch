@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<launch>
+	<node pkg="detection" type="gazebo_detection" name="gazebo_detection">
+    <param name="cmd" value="$(find detection)/scrip/gazebo_detection.py"/>
+	</node>
+
+	<node pkg="vistualization" type="gui" name="gazebo_vistualization">
+    <param name="cmd" value="$(find detection)/scrip/gui.py"/>
+	</node>
+
+
+</launch>

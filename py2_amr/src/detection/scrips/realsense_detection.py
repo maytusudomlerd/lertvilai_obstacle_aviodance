@@ -90,8 +90,8 @@ class obstacleDetection:
 		}
 		# Merge param
 		self.merge_param = {
-			'distanceFromOrigin_tol':1.7,
-			'distanceBetweenPlane_th':1.3,
+			'distanceFromOrigin_tol':0.5,
+			'distanceBetweenPlane_th':1.5,
 			'debug':False,
 			'bounding':False
 		}
@@ -119,7 +119,7 @@ class obstacleDetection:
 
 		# run detection
 		if(self.initial_camera):
-			self.initcamera(havebag=True)
+			self.initcamera(havebag=False)
 			self.initial_camera = False
 		while(not rospy.is_shutdown()):
 			self.get_frames()
@@ -260,7 +260,7 @@ class obstacleDetection:
 			# point = np.array(m.points).tolist()
 			point += m
 			# check  point is a list
-		point.transform([[0, 0, 1, 0], [1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 0, 1]])  # Z up
+		point.transform([[0, 0, 1, 0], [1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 0, 1]])
 		result = np.array(point.points).tolist()
 		# print(point)
 		# o3d.visualization.draw_geometries([point])
@@ -290,7 +290,7 @@ class obstacleDetection:
 			self.pc_size = len(self.pc.points)
 			print(self.pc_size)
 			# self.pc.transform([[0, 0, 1, 0], [1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 0, 1]]) # for publish
-			self.pc.transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]) #for test # y up
+			# self.pc.transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]) #for test # y up
 
 			# point = np.array(self.pc.points)
 			# print(min(point[0:,0]), max(point[0:,0]),min(point[0:,1]),max(point[0:,1]),min(point[0:,2]),max(point[0:,2]))
@@ -430,8 +430,9 @@ class obstacleDetection:
 				U,S,V = self.SVD(splits['point'][-1].points)
 				n = self.getNormal(V=V)
 
-				d = self.distance_point(xyz= C, xyz1= self.origin)
-
+				# d = self.distance_point(xyz= C, xyz1= self.origin)
+				d = C[-1]
+				print(d)
 				splits['centroid'].append(C)
 				splits['model'].append(n)
 				splits['distanceFromOrigin'].append(d)
@@ -591,7 +592,7 @@ class obstacleDetection:
 		if(not self.merge_param['bounding'] and not self.merge_param['debug']):
 			for i in range(len(self.merge)):				
 				#position of obstacle bound
-				self.merge[i].transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+				# self.merge[i].transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
 				try:
 					b = self.merge[i].get_axis_aligned_bounding_box()
 					boxnode = np.array(b.get_box_points())
