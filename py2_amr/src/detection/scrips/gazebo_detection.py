@@ -13,6 +13,7 @@ from detection.msg import obstacle_bound
 
 
 import numpy as np
+import ros_numpy
 import random 
 import time
 
@@ -219,13 +220,14 @@ class obstacleDetection:
 		self.pointcloud_pub.publish(pcloud)
 		print('[finish]')
 
-
+ 	
 	def sub_pointcloud(self):
 		rospy.Subscriber(self.pointcloud_topic, PointCloud2, self.getPointcloudCallback)
 		# rospy.Subscriber(self.color_topic, Image, self.getColorCallback)
 
 	def getPointcloudCallback(self,msg):
-		self.points = []
+		print('callback')
+		self.points = [] 
 		for p in pc2.read_points(msg, field_names = ("x", "y", "z"), skip_nans=True):
 			self.points.append(p)
 

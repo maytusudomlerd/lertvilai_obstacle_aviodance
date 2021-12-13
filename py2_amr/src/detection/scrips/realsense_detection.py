@@ -7,9 +7,13 @@ from cv_bridge import CvBridge, CvBridgeError
 
 import sensor_msgs.point_cloud2 as pc2
 from sensor_msgs.msg import PointCloud2, PointField
+
+from detection.msg import obstacle_bound
+
 import cv2
 
 import numpy as np
+import ros_numpy
 import random 
 import time
 
@@ -53,6 +57,7 @@ class obstacleDetection:
 		self.color_topic = '/camera/color/image_raw'
 		self.depth_topic = '/camera/depth/image_raw'
 		self.pointcloud_topic = '/camera/depth/color/points'
+		self.obstacle_bound_pub = rospy.Publisher('detection/obstacle/bound',obstacle_bound,queue_size=1)
 		self.bridge = CvBridge()
 
 		# pointcloud object
@@ -96,9 +101,6 @@ class obstacleDetection:
 			'bounding':False
 		}
 
-
-		
-
 		self.clusters = {'point': [] }
 		self.merge = []
 
@@ -108,8 +110,6 @@ class obstacleDetection:
 
 		self.plane_removal = True
 
-		
-
 		self.i = 0
 
 		# initialze
@@ -117,13 +117,24 @@ class obstacleDetection:
 		self.pointcloud_pub = rospy.Publisher("detection/result", PointCloud2,queue_size=1)
 		rospy.Rate(10)
 
-		# run detection
-		if(self.initial_camera):
-			self.initcamera(havebag=False)
-			self.initial_camera = False
-		while(not rospy.is_shutdown()):
-			self.get_frames()
+		rospy.Subscriber(self.pointcloud_topic, PointCloud2, self.getpointcloudCallback)
 
+		# # run detection
+		# if(self.initial_camera):
+		#   self.initcamera(havebag=True)
+		#   self.initial_camera = False
+		# while(not rospy.is_shutdown()):
+		#   self.get_frames()
+
+
+	def getpointcloudCallback(self,msg):
+
+		# pc = None
+
+		self.points = ros_numpy.point_cloud2.pointcloud2_to_xyz_array(msg, remove_nans=True)
+
+		if(len(self.points) != 0):
+			self.dataprocessing_ros()
 
 	def initcamera(self,havebag=False):
 
@@ -307,6 +318,30 @@ class obstacleDetection:
 		except:
 			pass
 
+	def dataprocessing_ros(self):
+		rospy.loginfo("[INFO] Data Processing with ROS Topic")
+
+		# clear pointcloud
+		self.pc.clear()
+
+		# initial timer
+		self.timestamp = []
+		self.processtime = time.time()
+
+		try:
+			self.pc.points = o3d.utility.Vector3dVector(self.points) #use many time
+			self.pc_size = len(self.pc.points)
+
+			if(self.pc_size > 0):
+				if(self.dataprocessing_param['voxelize']):
+					self.pc = o3d.geometry.PointCloud.voxel_down_sample(self.pc, voxel_size=self.dataprocessing_param['voxel_size'])
+				self.add_timestamp()
+				# o3d.visualization.draw_geometries([self.pc]+[self.axis])
+				self.initial_segmentation()
+
+		except:
+			pass
+
 	def initial_segmentation(self):
 		rospy.loginfo("[INFO] Initial Segmentation")
 		self.clusters['point'] = []
@@ -371,8 +406,8 @@ class obstacleDetection:
 				outlier = self.clusters['point'][i].select_by_index(indx,invert=True)
 
 				try:
-				# 	z_inlier = -1*(sum(np.array(inlier.points)[:,2]))/len(inlier.points)
-				# 	z_outlier = -1*(sum(np.array(outlier.points)[:,2]))/len(outlier.points)
+				#   z_inlier = -1*(sum(np.array(inlier.points)[:,2]))/len(inlier.points)
+				#   z_outlier = -1*(sum(np.array(outlier.points)[:,2]))/len(outlier.points)
 
 					if(len(inlier.points) > plane_theshold):
 					# if(z_inlier > plane_theshold):
@@ -432,7 +467,7 @@ class obstacleDetection:
 
 				# d = self.distance_point(xyz= C, xyz1= self.origin)
 				d = C[-1]
-				print(d)
+				# print(d)
 				splits['centroid'].append(C)
 				splits['model'].append(n)
 				splits['distanceFromOrigin'].append(d)
@@ -508,13 +543,13 @@ class obstacleDetection:
 							# temp['point'].paint_uniform_color([1, 0, 0])
 
 							# line = [
-							# 	[self.origin, list(candidate['centroid']), list(temp['centroid'])],
-							# 	[[0, 1], [0, 2]]
+							#   [self.origin, list(candidate['centroid']), list(temp['centroid'])],
+							#   [[0, 1], [0, 2]]
 							# ]
 
 							# line_set = o3d.geometry.LineSet(
-							# 	points=o3d.utility.Vector3dVector(line[0]),
-							# 	lines=o3d.utility.Vector2iVector(line[1]),
+							#   points=o3d.utility.Vector3dVector(line[0]),
+							#   lines=o3d.utility.Vector2iVector(line[1]),
 							# )
 							# line_set.colors = o3d.utility.Vector3dVector([[0, 0, 1], [1, 0, 0]])
 							# o3d.visualization.draw_geometries([candidate['point']]+[temp['point']]+[self.axis]+[line_set])
@@ -534,12 +569,12 @@ class obstacleDetection:
 									# candidate['point'].paint_uniform_color([0, 1, 0])
 									# temp['point'].paint_uniform_color([0, 1, 0])
 									# line = [
-									# 	[self.origin, list(candidate['centroid']), list(temp['centroid'])],
-									# 	[[0, 1], [0, 2]]
+									#   [self.origin, list(candidate['centroid']), list(temp['centroid'])],
+									#   [[0, 1], [0, 2]]
 									# ]
 									# line_set = o3d.geometry.LineSet(
-									# 	points=o3d.utility.Vector3dVector(line[0]),
-									# 	lines=o3d.utility.Vector2iVector(line[1]),
+									#   points=o3d.utility.Vector3dVector(line[0]),
+									#   lines=o3d.utility.Vector2iVector(line[1]),
 									# )
 									# line_set.colors = o3d.utility.Vector3dVector([[0, 1, 0], [0, 1, 0]])
 									# o3d.visualization.draw_geometries([candidate['point'], temp['point'], self.axis, line_set])
@@ -590,7 +625,7 @@ class obstacleDetection:
 
 		# mapto2d
 		if(not self.merge_param['bounding'] and not self.merge_param['debug']):
-			for i in range(len(self.merge)):				
+			for i in range(len(self.merge)):                
 				#position of obstacle bound
 				# self.merge[i].transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
 				try:
@@ -632,17 +667,26 @@ class obstacleDetection:
 
 					print('xxx',top_left_pixel_x,top_left_pixel_y,bottom_right_pixel_x,bottom_right_pixel_y)
 
-					#using cv2
-					cv2.rectangle(self.rgb_img, (top_left_pixel_x, top_left_pixel_y), (bottom_right_pixel_x, bottom_right_pixel_y), (0,255,0), 2)
-					text = 'obstacle at %.2f m' %(min_z)
-					cv2.putText(self.rgb_img, text, (top_left_pixel_x - 5, top_left_pixel_y - 5), 0, 0.3, (0,255,0))
+					# #using cv2
+					# cv2.rectangle(self.rgb_img, (top_left_pixel_x, top_left_pixel_y), (bottom_right_pixel_x, bottom_right_pixel_y), (0,255,0), 2)
+					# text = 'obstacle at %.2f m' %(min_z)
+					# cv2.putText(self.rgb_img, text, (top_left_pixel_x - 5, top_left_pixel_y - 5), 0, 0.3, (0,255,0))
+
+					#publish the point to use cv and show result
+					msg = obstacle_bound()
+					msg.top_left_x = int(top_left_pixel_x)
+					msg.top_left_y = int(top_left_pixel_y)
+					msg.bottom_right_x = int(bottom_right_pixel_x)
+					msg.bottom_right_y = int(bottom_right_pixel_y)
+					msg.distance = float(min_z)
+					self.obstacle_bound_pub.publish(msg)
 			
 				except:
 					self.merge.remove(self.merge[i])
 					continue
 
-			cv2.imshow("Result", self.rgb_img)
-			cv2.waitKey(1)  
+			# cv2.imshow("Result", self.rgb_img)
+			# cv2.waitKey(1)  
 
 
 
@@ -653,7 +697,7 @@ class obstacleDetection:
 				'edge' : [[4,5],[4,6],[5,3],[3,6],[0,3],[4,7],[6,1],[5,2],[0,2],[0,1],[1,7],[2,7]],
 				'color' : []
 			}
-			for i in range(len(self.merge)):					
+			for i in range(len(self.merge)):                    
 				#position of obstacle bound
 				try:
 					b = self.merge[i].get_axis_aligned_bounding_box()
