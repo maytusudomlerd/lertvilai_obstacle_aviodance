@@ -117,14 +117,14 @@ class obstacleDetection:
 		self.pointcloud_pub = rospy.Publisher("detection/result", PointCloud2,queue_size=1)
 		rospy.Rate(10)
 
-		rospy.Subscriber(self.pointcloud_topic, PointCloud2, self.getpointcloudCallback)
+		# rospy.Subscriber(self.pointcloud_topic, PointCloud2, self.getpointcloudCallback)
 
-		# # run detection
-		# if(self.initial_camera):
-		#   self.initcamera(havebag=True)
-		#   self.initial_camera = False
-		# while(not rospy.is_shutdown()):
-		#   self.get_frames()
+		# run detection
+		if(self.initial_camera):
+		  self.initcamera(havebag=True)
+		  self.initial_camera = False
+		while(not rospy.is_shutdown()):
+		  self.get_frames()
 
 
 	def getpointcloudCallback(self,msg):
@@ -506,9 +506,15 @@ class obstacleDetection:
 			'distanceFromOrigin': None
 		}
 
-		if(len(self.clusters['point']) >= 1):
+		if(len(self.clusters['point']) >= 2):
+			# print('have obstacle')
 
-			if(len(self.clusters['point']) >= 2):
+			if(len(self.clusters['point']) == 1):
+				# print('one obstacle')
+				self.merge.append(self.clusters['point'][-1])
+
+			else:
+				# print('many obstacle')
 				# find cadadate plane 
 				self.clusters['len'] = []
 				for p in self.clusters['point']:
@@ -622,72 +628,85 @@ class obstacleDetection:
 				for c in self.clusters['point']:
 					self.merge.append(c)
 
-
 		# mapto2d
 		if(not self.merge_param['bounding'] and not self.merge_param['debug']):
-			for i in range(len(self.merge)):                
-				#position of obstacle bound
-				# self.merge[i].transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
-				try:
-					b = self.merge[i].get_axis_aligned_bounding_box()
-					boxnode = np.array(b.get_box_points())
+			try:
+				for i in range(len(self.merge)):                
+					#position of obstacle bound
+					# self.merge[i].transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+					try:
+						b = self.merge[i].get_axis_aligned_bounding_box()
+						boxnode = np.array(b.get_box_points())
 
-					min_x = min(boxnode[0:,0])
-					min_y = min(boxnode[0:,1])
-					max_x = max(boxnode[0:,0])
-					max_y = max(boxnode[0:,1])
-					min_z = min(np.abs(boxnode[0:,2]))
+						min_x = min(boxnode[0:,0])
+						min_y = min(boxnode[0:,1])
+						max_x = max(boxnode[0:,0])
+						max_y = max(boxnode[0:,1])
+						min_z = min(np.abs(boxnode[0:,2]))
 
-					# m to mm
-					min_x = (min_x + (self.hfov/2)) * 1000
-					max_x = (max_x + (self.hfov/2)) * 1000
-					min_y = (min_y + (self.vfov/2)) * 1000
-					max_y = (max_y + (self.vfov/2)) * 1000
+						wd = min_z
+						hfov = 2 * wd*math.tan(self.hfov_deg_d/2)
+						# vfov = 2 * wd*math.tan(self.vfov_deg_d/2)
+						vfov = hfov/4 * 3
 
-					# mm to pixel
-					factor_x = self.w / (self.hfov*1000)
-					factor_y = self.h / (self.vfov*1000)
+						# m to mm
+						min_x = (min_x + (hfov/2)) * 1000
+						max_x = (max_x + (hfov/2)) * 1000
+						min_y = (min_y + (vfov/2)) * 1000
+						max_y = (max_y + (vfov/2)) * 1000
 
-					if(self.w == 848 and self.h == 636):
-						top_left_pixel_x = int(min_x * factor_x)
-						bottom_right_pixel_y = int(max_y * factor_y)
-						bottom_right_pixel_x = int(max_x * factor_x)
-						top_left_pixel_y = int(min_y * factor_y)
-					elif(self.w == 640 and self.h == 480):
-						top_left_pixel_x = int(min_x * factor_x)
-						top_left_pixel_y = int(min_y * factor_y)
-						bottom_right_pixel_x = int(max_x * factor_x)
-						bottom_right_pixel_y = int(max_y * factor_y)
-						
-					elif(self.w == 320 and self.h == 240):
-						top_left_pixel_x = int(min_x * factor_x)
-						bottom_right_pixel_y = int(max_y * factor_y)
-						bottom_right_pixel_x = int(max_x * factor_x)
-						top_left_pixel_y = int(min_y * factor_y)
+						# mm to pixel
+						factor_x = self.w / (hfov*1000)
+						factor_y = self.h / (vfov*1000)
 
-					print('xxx',top_left_pixel_x,top_left_pixel_y,bottom_right_pixel_x,bottom_right_pixel_y)
+						if(self.w == 848 and self.h == 636):
+							top_left_pixel_x = int(min_x * factor_x)
+							bottom_right_pixel_y = int(max_y * factor_y)
+							bottom_right_pixel_x = int(max_x * factor_x)
+							top_left_pixel_y = int(min_y * factor_y)
+						elif(self.w == 640 and self.h == 480):
+							top_left_pixel_x = int(min_x * factor_x)
+							top_left_pixel_y = int(min_y * factor_y)
+							bottom_right_pixel_x = int(max_x * factor_x)
+							bottom_right_pixel_y = int(max_y * factor_y)
+							
+						elif(self.w == 320 and self.h == 240):
+							top_left_pixel_x = int(min_x * factor_x)
+							bottom_right_pixel_y = int(max_y * factor_y)
+							bottom_right_pixel_x = int(max_x * factor_x)
+							top_left_pixel_y = int(min_y * factor_y)
 
-					# #using cv2
-					# cv2.rectangle(self.rgb_img, (top_left_pixel_x, top_left_pixel_y), (bottom_right_pixel_x, bottom_right_pixel_y), (0,255,0), 2)
-					# text = 'obstacle at %.2f m' %(min_z)
-					# cv2.putText(self.rgb_img, text, (top_left_pixel_x - 5, top_left_pixel_y - 5), 0, 0.3, (0,255,0))
+						print('xxx',top_left_pixel_x,top_left_pixel_y,bottom_right_pixel_x,bottom_right_pixel_y)
 
-					#publish the point to use cv and show result
-					msg = obstacle_bound()
-					msg.top_left_x = int(top_left_pixel_x)
-					msg.top_left_y = int(top_left_pixel_y)
-					msg.bottom_right_x = int(bottom_right_pixel_x)
-					msg.bottom_right_y = int(bottom_right_pixel_y)
-					msg.distance = float(min_z)
-					self.obstacle_bound_pub.publish(msg)
-			
-				except:
-					self.merge.remove(self.merge[i])
-					continue
+						#using cv2
+						cv2.rectangle(self.rgb_img, (top_left_pixel_x, top_left_pixel_y), (bottom_right_pixel_x, bottom_right_pixel_y), (0,255,0), 2)
+						text = 'obstacle at %.2f m' %(min_z)
+						cv2.putText(self.rgb_img, text, (top_left_pixel_x - 5, top_left_pixel_y - 5), 0, 0.3, (0,255,0))
 
-			# cv2.imshow("Result", self.rgb_img)
-			# cv2.waitKey(1)  
+						# #publish the point to use cv and show result
+						# msg = obstacle_bound()
+						# msg.top_left_x.data = int(top_left_pixel_x)
+						# msg.top_left_y.data = int(top_left_pixel_y)
+						# msg.bottom_right_x.data = int(bottom_right_pixel_x)
+						# msg.bottom_right_y.data = int(bottom_right_pixel_y)
+						# msg.distance.data = float(min_z)
+						# self.obstacle_bound_pub.publish(msg)
+				
+					except:
+						# msg = obstacle_bound()
+						# msg.top_left_x.data = -1
+						# msg.top_left_y.data = -1
+						# msg.bottom_right_x.data = -1
+						# msg.bottom_right_y.data = -1
+						# msg.distance.data = -1
+						# self.obstacle_bound_pub.publish(msg)
+						self.merge.remove(self.merge[i])
+						continue
 
+				cv2.imshow("Result", self.rgb_img)
+				cv2.waitKey(1)
+			except:
+				pass  
 
 
 		if(self.merge_param['bounding']):

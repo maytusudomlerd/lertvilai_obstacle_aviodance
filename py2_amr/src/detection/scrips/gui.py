@@ -23,9 +23,23 @@ class viewer:
 		
 		self.points = []
 
+		self.tlx = 0
+		self.tly = 0
+		self.brx = 0
+		self.bry = 0
+		self.depth = 0
+
+		self.bound = []
+		self.z = []
+
 		rospy.Subscriber(self.color_topic, Image, self.getColorCallback)
 		rospy.Subscriber(self.bound_topic, obstacle_bound, self.boundingCallback)
 
+		# while(not rospy.is_shutdown()):
+		# 	try:
+		# 		self.show()
+		# 	except:
+		# 		pass
 
 
 	def sub_color(self):
@@ -65,19 +79,46 @@ class viewer:
 			print(e)
 
 	def boundingCallback(self,msg):
-		tlx = msg.top_left_x
-		tly = msg.top_left_y
-		brx = msg.bottom_right_x
-		bry = msg.bottom_right_y
-		depth = msg.distance
+		self.tlx = msg.top_left_x
+		self.tly = msg.top_left_y
+		self.brx = msg.bottom_right_x
+		self.bry = msg.bottom_right_y
+		self.depth = msg.distance
 
-		#using cv2
-		cv2.rectangle(self.color_img, (tlx, tly), (brx, bry), (0,255,0), 2)
-		text = 'obstacle at %.2f m' %(depth)
-		cv2.putText(self.color_img, text, (tlx - 5, tly - 5), 0, 0.3, (0,255,0))
+		print('msg in: ',self.tlx,self.tly,self.brx,self.bry,self.depth)
 
-		cv2.imshow("Result", self.color_img)
-		cv2.waitKey(1)  
+		self.show()
+		
+	def show(self):
+		if(not -1 in [self.tlx,self.tly,self.brx,self.bry]):
+			if(not -99 in [self.tlx,self.tly,self.brx,self.bry]):
+				self.bound.append([self.tlx,self.tly,self.brx,self.bry])
+				self.z.append(self.depth)
+			else:
+				# print('show')
+				print(self.bound)
+				for i in range(len(self.bound)):
+					# print('obstacle ',i,self.bound[i])
+					print('obstacle ',i,self.bound[i][0],self.bound[i][1],self.bound[i][2],self.bound[i][3],self.z[i])
+					#using cv2
+					cv2.rectangle(self.color_img, (self.bound[i][0], self.bound[i][1]), (self.bound[i][2], self.bound[i][3]), (0,255,0), 2)
+					text = 'obstacle at %.2f m' %(self.z[i])
+					cv2.putText(self.color_img, text, (self.bound[i][0] - 5, self.bound[i][1] - 5), 0, 0.3, (0,255,0))
+					print('bound and put text')
+				self.bound = []
+				self.z = []
+
+				cv2.imshow("Result", self.color_img)
+				cv2.waitKey(1) 
+
+		# if(not -1 in [self.tlx,self.tly,self.brx,self.bry]):
+		# 	cv2.rectangle(self.color_img, (self.tlx, self.tly), (self.brx, self.bry), (0,255,0), 2)
+		# 	text = 'obstacle at %.2f m' %(self.depth)
+		# 	print('depth ',self.depth)
+		# 	cv2.putText(self.color_img, text, (self.tlx - 5, self.tly - 5), 0, 0.3, (0,255,0))
+
+		# cv2.imshow("Result", self.color_img)
+		# cv2.waitKey(1)  
 
 if __name__ == '__main__':
 	listen = viewer()

@@ -40,11 +40,16 @@ class obstacleDetection:
 		self.pipeline = None
 
 		# camera config
-		self.w =  640
-		self.h = 480
-		self.hfov_deg_d = 87.0 * np.pi /180
+		# self.w = 640
+		# self.h = 480
+		# self.w = 320
+		# self.h = 240
+		self.w = 160
+		self.h = 120
+		
+		self.hfov_deg_d = 85.2 * np.pi /180
 		self.vfov_deg_d = 58.0 * np.pi /180
-		self.hfov_deg_c = 69.0 * np.pi /180
+		self.hfov_deg_c = 69.4 * np.pi /180
 		self.vfov_deg_c = 42.0 * np.pi /180
 		self.wd = 3 # m 
 		self.hfov = 2 * self.wd*math.tan(self.hfov_deg_c/2)
@@ -87,8 +92,8 @@ class obstacleDetection:
 		}
 		# Merge param
 		self.merge_param = {
-			'distanceFromOrigin_tol':1.5,
-			'distanceBetweenPlane_th':1.3,
+			'distanceFromOrigin_tol':0.5,
+			'distanceBetweenPlane_th':0.2,
 			'debug':False,
 			'bounding':False
 		}
@@ -99,6 +104,8 @@ class obstacleDetection:
 		self.timestamp = []
 		self.epoch = []
 		self.processtime = 0.0
+		self.start_time_flag = True
+		self.start_time = 0
 
 		self.i = 0
 
@@ -186,14 +193,12 @@ class obstacleDetection:
 
 		now = time.time() - self.processtime
 		self.processtime = self.processtime+now
-		# now = time.time()
-		self.timestamp.append(now)
-		# print(len(self.timestamp))
+		self.timestamp.append(format(now, ".4f"))
 
 	def addtoCSV(self):
-		with open('computing_time', 'a') as c:
+		with open('/home/maytus/internship_main/experiment/computation/simulations/computing_time.csv', 'a') as c:
 			write = csv.writer(c)
-			self.timestamp.insert(0,self.pc_size)
+			self.timestamp.insert(1,self.pc_size)
 			write.writerows([self.timestamp])
 
 	def pointcloudpub(self):
@@ -202,20 +207,15 @@ class obstacleDetection:
 		point = None
 		point = self.merge.pop(0)
 		for m in self.merge:
-			# point = np.array(m.points).tolist()
 			point += m
-			# check  point is a list
 		point.transform([[0, 0, 1, 0], [1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 0, 1]])
 
 		# o3d.visualization.draw_geometries([self.axis]+[point])
 
 		result = np.array(point.points).tolist()
-		# print(point)
-		# o3d.visualization.draw_geometries([point])
 		pcloud.header.frame_id = 'camera_link'
 		pcloud.header.stamp = rospy.Time.now()
 		pcloud = pc2.create_cloud_xyz32(pcloud.header, result)
-		# print(pcloud)
 
 		self.pointcloud_pub.publish(pcloud)
 		print('[finish]')
@@ -223,15 +223,19 @@ class obstacleDetection:
  	
 	def sub_pointcloud(self):
 		rospy.Subscriber(self.pointcloud_topic, PointCloud2, self.getPointcloudCallback)
-		# rospy.Subscriber(self.color_topic, Image, self.getColorCallback)
 
 	def getPointcloudCallback(self,msg):
-		print('callback')
-		self.points = [] 
-		for p in pc2.read_points(msg, field_names = ("x", "y", "z"), skip_nans=True):
-			self.points.append(p)
 
-		self.dataprocessing()
+		self.points = ros_numpy.point_cloud2.pointcloud2_to_xyz_array(msg, remove_nans=True)
+
+		if(len(self.points) != 0):
+			self.dataprocessing()
+
+		# self.points = [] 
+		# for p in pc2.read_points(msg, field_names = ("x", "y", "z"), skip_nans=True):
+		# 	self.points.append(p)
+
+		# self.dataprocessing()
 
 	def getColorCallback(self, msg):
 
@@ -242,29 +246,33 @@ class obstacleDetection:
 		except Exception as e:
 			print(e)
 
-
 	def dataprocessing(self):
-		rospy.loginfo("[INFO] Data Processing")
+		rospy.loginfo("[INFO] Data Processing with ROS Topic")
+
+		# clear pointcloud
 		self.pc.clear()
+
 		# initial timer
 		self.timestamp = []
 		self.processtime = time.time()
 
-		
+		# timestamp
+		if(self.start_time_flag):
+			self.start_time = time.time()
+			self.start_time_flag = False
+
+		self.timestamp.append(format(time.time()-self.start_time, ".4f"))
+
 		try:
 			self.pc.points = o3d.utility.Vector3dVector(self.points) #use many time
 			self.pc_size = len(self.pc.points)
-			# print(self.pc_size)
-			# self.pc.transform([[0, 0, 1, 0], [1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 0, 1]])
 
-			if(self.dataprocessing_param['voxelize']):
-				self.pc = o3d.geometry.PointCloud.voxel_down_sample(self.pc, voxel_size=self.dataprocessing_param['voxel_size'])
-			self.add_timestamp()
-			# print(self.processtime)
-			# print(self.timesta0mp)
-			# o3d.visualization.draw_geometries([self.pc]+[self.axis])
-
-			self.initial_segmentation()
+			if(self.pc_size > 0):
+				if(self.dataprocessing_param['voxelize']):
+					self.pc = o3d.geometry.PointCloud.voxel_down_sample(self.pc, voxel_size=self.dataprocessing_param['voxel_size'])
+				self.add_timestamp()
+				# o3d.visualization.draw_geometries([self.pc]+[self.axis])
+				self.initial_segmentation()
 
 		except:
 			pass
@@ -334,6 +342,10 @@ class obstacleDetection:
 				try:
 				# 	z_inlier = -1*(sum(np.array(inlier.points)[:,2]))/len(inlier.points)
 				# 	z_outlier = -1*(sum(np.array(outlier.points)[:,2]))/len(outlier.points)
+
+					# print(plane_theshold)
+					# print(len(inlier.points))
+					# print(len(outlier.points))
 
 					if(len(inlier.points) > plane_theshold):
 					# if(z_inlier > plane_theshold):
@@ -547,6 +559,7 @@ class obstacleDetection:
 
 		# mapto2d
 		if(not self.merge_param['bounding'] and not self.merge_param['debug']):
+			end_f = 0
 			for i in range(len(self.merge)):				
 				#position of obstacle bound
 				try:
@@ -559,25 +572,22 @@ class obstacleDetection:
 					max_y = max(boxnode[0:,1])
 					min_z = min(np.abs(boxnode[0:,2]))
 
-					# print('min_x ',min_x)
-					# print('max_x ',max_x)
-					# print('min_y ',min_y)
-					# print('max_y ',max_y)
-
-					# print(self.hfov/2)
-					# print(self.vfov/2)
+					wd = min_z
+					hfov = 2 * wd*math.tan(self.hfov_deg_d/2)
+					# vfov = 2 * wd*math.tan(self.vfov_deg_d/2)
+					vfov = hfov/4 * 3
 
 					# m to mm
-					min_x = (min_x + (self.hfov/2)) * 1000
-					max_x = (max_x + (self.hfov/2)) * 1000
-					min_y = (min_y + (self.vfov/2)) * 1000
-					max_y = (max_y + (self.vfov/2)) * 1000
+					min_x = (min_x + (hfov/2)) * 1000
+					max_x = (max_x + (hfov/2)) * 1000
+					min_y = (min_y + (vfov/2)) * 1000
+					max_y = (max_y + (vfov/2)) * 1000
 
 					# mm to pixel
-					factor_x = self.w / (self.hfov*1000)
-					factor_y = self.h / (self.vfov*1000)
+					factor_x = self.w / (hfov*1000)
+					factor_y = self.h / (vfov*1000)
 
-					if(self.w == 848 and self.h == 636):
+					if(self.w == 160 and self.h == 120):
 						top_left_pixel_x = int(min_x * factor_x)
 						bottom_right_pixel_y = int(max_y * factor_y)
 						bottom_right_pixel_x = int(max_x * factor_x)
@@ -604,10 +614,21 @@ class obstacleDetection:
 					msg.bottom_right_y = int(bottom_right_pixel_y)
 					msg.distance = float(min_z)
 					self.obstacle_bound_pub.publish(msg)
+					end_f += 1
 								
 				except:
 					self.merge.remove(self.merge[i])
 					continue
+			if(end_f > 0):
+				msg = obstacle_bound()
+				msg.top_left_x = -99
+				msg.top_left_y = -99
+				msg.bottom_right_x = -99
+				msg.bottom_right_y = -99
+				self.obstacle_bound_pub.publish(msg)
+				# print('pub -99')
+				end_f = 0
+
 
 
 		if(self.merge_param['bounding']):
@@ -647,10 +668,9 @@ class obstacleDetection:
 			o3d.visualization.draw_geometries([m for m in self.merge]+[self.axis])
 
 			
-			# Total time usaged
-			# self.add_timestamp()
-			# self.addtoCSV()
-
+		# Total time usaged
+		self.add_timestamp()
+		self.addtoCSV()
 		self.pointcloudpub()
 
 
