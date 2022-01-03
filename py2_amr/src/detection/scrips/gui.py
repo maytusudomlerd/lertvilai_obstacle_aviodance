@@ -85,7 +85,7 @@ class viewer:
 		self.bry = msg.bottom_right_y
 		self.depth = msg.distance
 
-		print('msg in: ',self.tlx,self.tly,self.brx,self.bry,self.depth)
+		# print('msg in: ',self.tlx,self.tly,self.brx,self.bry,self.depth)
 
 		self.show()
 		
@@ -95,30 +95,21 @@ class viewer:
 				self.bound.append([self.tlx,self.tly,self.brx,self.bry])
 				self.z.append(self.depth)
 			else:
-				# print('show')
-				print(self.bound)
 				for i in range(len(self.bound)):
-					# print('obstacle ',i,self.bound[i])
-					print('obstacle ',i,self.bound[i][0],self.bound[i][1],self.bound[i][2],self.bound[i][3],self.z[i])
-					#using cv2
 					cv2.rectangle(self.color_img, (self.bound[i][0], self.bound[i][1]), (self.bound[i][2], self.bound[i][3]), (0,255,0), 2)
+
+					
+
 					text = 'obstacle at %.2f m' %(self.z[i])
 					cv2.putText(self.color_img, text, (self.bound[i][0] - 5, self.bound[i][1] - 5), 0, 0.3, (0,255,0))
-					print('bound and put text')
 				self.bound = []
 				self.z = []
 
+				cv2.rectangle(self.color_img, (150, 80), (440, 365), (255,0,0), 2)
+				cv2.putText(self.color_img, 'obstacle ground truth', (150 - 5, 80 - 5), 0, 0.3, (255,0,0))
+
 				cv2.imshow("Result", self.color_img)
-				cv2.waitKey(1) 
-
-		# if(not -1 in [self.tlx,self.tly,self.brx,self.bry]):
-		# 	cv2.rectangle(self.color_img, (self.tlx, self.tly), (self.brx, self.bry), (0,255,0), 2)
-		# 	text = 'obstacle at %.2f m' %(self.depth)
-		# 	print('depth ',self.depth)
-		# 	cv2.putText(self.color_img, text, (self.tlx - 5, self.tly - 5), 0, 0.3, (0,255,0))
-
-		# cv2.imshow("Result", self.color_img)
-		# cv2.waitKey(1)  
+				cv2.waitKey(1)  
 
 if __name__ == '__main__':
 	listen = viewer()

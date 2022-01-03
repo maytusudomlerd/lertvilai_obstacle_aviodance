@@ -8,9 +8,6 @@
     <!-- SPAWN -->
     <include file="$(find detection)/launch/spawn.launch"/>
 
-    <!-- NAVIGATION -->
-    <include file="$(find detection)/launch/navigation.launch"/>
-
     <!-- DETECTION -->
 	<node pkg="detection" type="gazebo_detection.py" name="detection">
     <!-- <param name="cmd" value="$(find detection)/scrip/gazebo_detection.py"/> -->
