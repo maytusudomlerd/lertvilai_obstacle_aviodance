@@ -1,2 +1,2 @@
-# internship_main
- intregrate detection with ros env
+# Obstacle Avoidance
+ This Code is a base on ros neotic.It used to navigate to mobile robot with LiDAR and Point Cloud.
