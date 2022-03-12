@@ -79,11 +79,11 @@ class viewer:
 			print(e)
 
 	def boundingCallback(self,msg):
-		self.tlx = msg.top_left_x
-		self.tly = msg.top_left_y
-		self.brx = msg.bottom_right_x
-		self.bry = msg.bottom_right_y
-		self.depth = msg.distance
+		self.tlx = msg.top_left_x.data
+		self.tly = msg.top_left_y.data
+		self.brx = msg.bottom_right_x.data
+		self.bry = msg.bottom_right_y.data
+		self.depth = msg.distance.data
 
 		# print('msg in: ',self.tlx,self.tly,self.brx,self.bry,self.depth)
 

@@ -729,20 +729,15 @@ class obstacleDetection:
 					if(self.source == 'ros'):
 						#publish the point to use cv and show result
 						msg = obstacle_bound()
-						msg.top_left_x = int(top_left_pixel_x)
-						msg.top_left_y = int(top_left_pixel_y)
-						msg.bottom_right_x = int(bottom_right_pixel_x)
-						msg.bottom_right_y = int(bottom_right_pixel_y)
-						msg.distance = float(min_z)
+						msg.top_left_x.data = int(top_left_pixel_x)
+						msg.top_left_y.data = int(top_left_pixel_y)
+						msg.bottom_right_x.data = int(bottom_right_pixel_x)
+						msg.bottom_right_y.data = int(bottom_right_pixel_y)
+						msg.distance.data = float(min_z)
 						self.obstacle_bound_pub.publish(msg)
 						end_f += 1
 
 					elif(self.source == 'camera'):
-						
-						# insert Ground Truth
-						#
-						
-
 						cv2.rectangle(self.rgb_img, (top_left_pixel_x, top_left_pixel_y), (bottom_right_pixel_x, bottom_right_pixel_y), (0,255,0), 2)
 						text = 'obstacle at %.2f m' %(min_z)
 						cv2.putText(self.rgb_img, text, (top_left_pixel_x - 5, top_left_pixel_y - 5), 0, 0.3, (0,255,0))
@@ -754,10 +749,10 @@ class obstacleDetection:
 
 			if(end_f > 0):
 				msg = obstacle_bound()
-				msg.top_left_x = -99
-				msg.top_left_y = -99
-				msg.bottom_right_x = -99
-				msg.bottom_right_y = -99
+				msg.top_left_x.data = -99
+				msg.top_left_y.data = -99
+				msg.bottom_right_x.data = -99
+				msg.bottom_right_y.data = -99
 				self.obstacle_bound_pub.publish(msg)
 				end_f = 0
 

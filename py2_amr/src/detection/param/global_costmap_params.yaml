@@ -8,6 +8,6 @@ global_costmap:
 
   static_map: true
 
-  plugins:
-    - {name: static_layer,            type: "costmap_2d::StaticLayer"}
-    - {name: inflation_layer,         type: "costmap_2d::InflationLayer"}
+  # plugins:
+  #   - {name: static_layer,            type: "costmap_2d::StaticLayer"}
+  #   - {name: inflation_layer,         type: "costmap_2d::InflationLayer"}
