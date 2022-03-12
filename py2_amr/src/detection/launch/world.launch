@@ -7,9 +7,9 @@
     <arg name="headless" default="false" />
     <!-- include gazebo_ros launcher -->
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
-        <!-- <arg name="world_name" default="$(find detection)/world/experiment_env0.world" /> -->
-        <!-- <arg name="world_name" default="$(find detection)/world/computation2_env6.world" /> -->
-        <arg name="world_name" default="$(find detection)/world/manyshapeob.world" />
+        <arg name="world_name" default="$(find detection)/world/experiment_env0.world" />
+        <!-- <arg name="world_name" default="$(find detection)/world/computation2_env4.world" /> -->
+        <!-- <arg name="world_name" default="$(find detection)/world/manyshapeob.world" /> -->
         <arg name="debug" value="$(arg debug)" />
         <arg name="gui" value="$(arg gui)" />
         <arg name="paused" value="$(arg pause)" />

@@ -82,10 +82,10 @@ class obstacleDetection:
 		}
 		# split param 
 		self.split_param = {
-			# 'eps': 0.06,
-			# 'min_sample' : 6,
-			'eps': 0.1,
-			'min_sample' : 3,
+			'eps': 0.06,
+			'min_sample' : 6,
+			# 'eps': 0.1,
+			# 'min_sample' : 3,
 			'debug' : False
 		}
 		# Merge param
@@ -539,12 +539,12 @@ class obstacleDetection:
 
 					if(len(self.clusters['point']) == 1):
 						if(len(self.clusters['point']).point >= 50):
-							self.clusters['centroid'][0] = self.clusters['point'].get_center()
+							self.clusters['centroid'][0] = self.clusters['point'][0].get_center()
 							U,S,V = self.SVD(self.clusters['point'][0].points)
 							n = self.getNormal(V=V)
 							self.clusters['model'][0] = n
 							d = self.distance_point(xyz= self.clusters['centroid'][0], xyz1= self.origin)
-							self.clusters['distanceFromOrigin'][0] = append(d)
+							self.clusters['distanceFromOrigin'][0] = d
 
 					elif(len(self.clusters['point']) > 1):
 						# get candidate plane
@@ -654,7 +654,9 @@ class obstacleDetection:
 						self.clusters['distanceFromOrigin'].append(d)
 
 			self.merge = self.clusters['point'].copy()
-			print(self.merge)
+			
+		if(len(self.merge) <= 0 ):
+			self.pointcloudpub()
 
 		# mapto2d
 		if(not self.merge_param['bounding'] and not self.merge_param['debug']):
@@ -705,7 +707,24 @@ class obstacleDetection:
 						bottom_right_pixel_x = int(max_x * factor_x)
 						top_left_pixel_y = int(min_y * factor_y)
 
-					print('xxx',top_left_pixel_x,top_left_pixel_y,bottom_right_pixel_x,bottom_right_pixel_y)
+					if(top_left_pixel_x < 0):
+						top_left_pixel_x = 0
+					elif(top_left_pixel_x > self.w):
+						top_left_pixel_x = self.w
+					if(top_left_pixel_y < 0):
+						top_left_pixel_y = 0
+					elif(top_left_pixel_y > self.h):
+						top_left_pixel_y = self.h
+					if(bottom_right_pixel_x < 0):
+						bottom_right_pixel_x = 0
+					elif(bottom_right_pixel_x > self.w):
+						bottom_right_pixel_x = self.w
+					if(bottom_right_pixel_y < 0):
+						bottom_right_pixel_y = 0
+					elif(bottom_right_pixel_y > self.h):
+						bottom_right_pixel_y = self.h
+
+					# print('xxx',top_left_pixel_x,top_left_pixel_y,bottom_right_pixel_x,bottom_right_pixel_y)
 
 					if(self.source == 'ros'):
 						#publish the point to use cv and show result
@@ -722,6 +741,7 @@ class obstacleDetection:
 						
 						# insert Ground Truth
 						#
+						
 
 						cv2.rectangle(self.rgb_img, (top_left_pixel_x, top_left_pixel_y), (bottom_right_pixel_x, bottom_right_pixel_y), (0,255,0), 2)
 						text = 'obstacle at %.2f m' %(min_z)
@@ -811,15 +831,8 @@ Real
 			cv2.putText(self.rgb_img, 'Obstacle Ground Truth', (50 - 5, 230 - 5), 0, 0.3, (255,0,0))
 			cv2.putText(self.rgb_img, 'Obstacle Ground Truth', (450 - 5, 280 - 5), 0, 0.3, (255,0,0))
 
-	env 3 	50		230		370		450
-			380		230		580		470
-			290		140		460		250
-			cv2.rectangle(self.rgb_img, (50, 230), (370, 450), (255,0,0), 2)
-			cv2.rectangle(self.rgb_img, (380, 230), (580, 470), (255,0,0), 2)
-			cv2.rectangle(self.rgb_img, (290, 140), (460, 250), (255,0,0), 2)
-			cv2.putText(self.rgb_img, 'Obstacle Ground Truth', (50 - 5, 230 - 5), 0, 0.3, (255,0,0))
-			cv2.putText(self.rgb_img, 'Obstacle Ground Truth', (380 - 5, 230 - 5), 0, 0.3, (255,0,0))
-			cv2.putText(self.rgb_img, 'Obstacle Ground Truth', (290 - 5, 140 - 5), 0, 0.3, (255,0,0))
+	env 3 	cv2.rectangle(self.rgb_img, (25, 130), (580, 470), (255,0,0), 2)
+			cv2.putText(self.rgb_img, 'Obstacle Ground Truth', (25 - 5, 130 - 5), 0, 0.3, (255,0,0))
 
 	env 4	60		300		270		470
 			280		260		410		410

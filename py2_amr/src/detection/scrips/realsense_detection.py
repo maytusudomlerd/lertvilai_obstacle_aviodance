@@ -40,7 +40,7 @@ class obstacleDetection:
 		self.pipeline = None
 
 		# camera config
-		self.w =  640
+		self.w = 640
 		self.h = 480
 		self.hfov_deg_d = 87.0 * np.pi /180
 		self.vfov_deg_d = 58.0 * np.pi /180
